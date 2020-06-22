@@ -1,0 +1,68 @@
+ <?php 
+include "wv.php";
+session_set_cookie_params(0);
+session_start();
+$db = new wv();
+
+function test_input($data) {
+    $data = trim($data);
+    $data = stripslashes($data);
+    $data = htmlspecialchars($data);
+    return $data;
+}
+
+$answer	= array();
+$errors	= array();
+$answer['success'] = false;
+
+switch (true)
+{
+case true: 
+    if (empty($_POST['firstname']))
+        $errors['firstname'] = 'Firtname is mandatory';
+        
+    if (empty($_POST['lastname']))
+        $errors['lastname'] = 'Lastname is mandatory';
+               
+    if (empty($_POST['phone']))
+        $errors['phone'] = 'Phone is mandatory';
+
+    if (empty($_POST['country']))
+        $errors['country'] = 'Country is mandatory';
+
+    if (empty($_POST['position']))
+        $errors['position'] = 'Position is mandatory';
+        
+    $email = test_input($_POST["email"]);
+    if (!filter_var($email, FILTER_VALIDATE_EMAIL)) {
+        $errors['email'] = "Invalid email format";
+     }
+            
+    if (empty($_POST['password']))
+        $errors['password'] = 'Password is mandatory';
+                
+                    
+    if (!empty($errors)) break;
+    
+    
+    if ($db->check_user($_POST['email']))
+    {
+        $errors['email'] = 'Invalid email or already registered';        
+        break;
+    }
+    
+    if (($password = $db->check_password($_POST['password'])) == NULL)
+    {
+        $errors['password'] = 'Invalid email or already registered';        
+        break;
+    }
+}
+
+if (empty($errors))
+  $result = $db->register_user($_POST);
+
+  
+$answer['errors'] = $errors;
+
+echo json_encode($answer);
+?>

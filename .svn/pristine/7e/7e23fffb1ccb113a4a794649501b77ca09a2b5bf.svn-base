@@ -1,0 +1,84 @@
+ <?php 
+include "wv.php";
+session_set_cookie_params(0);
+session_start();
+$db = new wv();
+
+function test_input($data) {
+    $data = trim($data);
+    $data = stripslashes($data);
+    $data = htmlspecialchars($data);
+    return $data;
+}
+
+function check_password($pw)
+{
+    $password = filter_var($pw, FILTER_SANITIZE_STRING, FILTER_FLAG_STRIP_LOW);
+    $password = filter_var($password, FILTER_SANITIZE_STRING, FILTER_FLAG_STRIP_HIGH);
+    
+    if ($password == NULL) return NULL;
+    if (strcmp($password, $pw)) return NULL;
+    if (strlen($password) > 16) return NULL;
+    if (strlen($password) < 8) return NULL;
+   
+    if (!preg_match('/^[a-zA-Z0-9]{3,}$/', $password)) return NULL;
+ 
+    return $password;
+}
+
+
+$answer	= array();
+$errors	= array();
+$answer['success'] = false;
+
+switch (true)
+{
+case true: 
+    $firstname = test_input($_POST["firstname"]);
+    if (empty($firstname))
+        $errors['firstname'] = 'Firtname is mandatory';
+    
+    $lastname = test_input($_POST["lastname"]);
+    if (empty($lastname))
+        $errors['lastname'] = 'Lastname is mandatory';
+
+    $phone = test_input($_POST["phone"]);
+    if (empty($phone))
+        $errors['phone'] = 'Phone is mandatory';
+
+    $country = test_input($_POST["country"]);      
+    if (empty($country))
+        $errors['country'] = 'Country is mandatory';
+
+    $position = test_input($_POST["position"]);    
+    if (empty($position))
+        $errors['position'] = 'Position is mandatory';
+        
+    $email = test_input($_POST["email"]);
+    if (!filter_var($email, FILTER_VALIDATE_EMAIL)) {
+        $errors['email'] = "Invalid email format";
+     }
+
+    $password = check_password($_POST['password']);
+    if (is_null($password))
+        $errors['password'] = 'Invalid Password. Must be between 8 and 16 characters';
+                
+                    
+    if (!empty($errors)) break;
+    
+    
+    if ($db->checkUser($email) == true)
+    {
+        $errors['email'] = 'Invalid email or already registered';        
+        break;
+    }
+}
+
+if (empty($errors))
+  $result = $db->newUser($firstname, $lastname, $phone, $country, $position, $email, $password);
+
+  
+$answer['errors'] = $errors;
+
+echo json_encode($answer);
+?>

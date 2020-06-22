@@ -1,0 +1,137 @@
+<?php
+session_start();
+include_once('lib/wv.php');
+
+if (isset($_GET['logout'])) {
+    session_unset();
+    session_destroy();
+    header( 'Location: login.php?fromURL=' . urlencode(basename($_SERVER ['PHP_SELF'])));
+    die();
+}
+
+if (basename($_SERVER['PHP_SELF']) != 'login.php')
+{
+    if (!isset($_SESSION['username']) || !isset($_SESSION['password'])) {
+     session_unset();
+     session_destroy();
+     header( 'Location: login.php?fromURL=' . urlencode(basename($_SERVER ['PHP_SELF'])));
+     die();
+    }
+}
+
+    $db = new wv();
+    
+    header('Content-Type: text/html; charset=utf-8');
+	header("Cache-Control: no-store, no-cache, must-revalidate, max-age=0");
+	header("Cache-Control: post-check=0, pre-check=0", false);
+	header("Pragma: no-cache");
+	date_default_timezone_set('GMT');
+?>
+
+<!DOCTYPE html>
+<html lang="en">
+	<head>
+		<meta charset="utf-8">
+		<meta http-equiv="X-UA-Compatible" content="IE=edge">
+		<meta name="viewport" content="width=device-width, initial-scale=1">
+		
+		<title>Nucleos Wake</title>
+		
+		<link href="css/bootstrap.css" rel="stylesheet">
+		<link href="css/typeahead.css" rel="stylesheet">
+		<link href="css/mystyle.css" rel="stylesheet">
+		<link href="css/select2.min.css" rel="stylesheet">
+		 <link rel="stylesheet" href="css/led.css" />
+		 <link rel="stylesheet" href="css/font-awesome.css">
+		 
+		 
+		<link rel="icon" href="img/LOGO_WV.png">
+	
+  </head>
+  
+		<script type="text/javascript" src="js/jquery-1.11.3.min.js"></script>
+		<script type="text/javascript" src="js/bootstrap.min.js"></script>
+		<script type="text/javascript" src="js/handlebars-v4.0.4.js"></script>
+		<script type="text/javascript" src="js/bloodhound.js"></script>
+		<script type="text/javascript" src="js/typeahead.jquery.js"></script>		
+		<script type="text/javascript" src="js/myscripts.js"></script>
+		<script type="text/javascript" src="js/select2.full.js"></script>
+		
+ 		<script type="text/javascript">
+ 		$(document).ready(function () {
+ 			setupClientAutocompleteNav();
+ 		});
+		</script>
+  
+  <body>
+  	<nav class="navbar navbar-default">
+	<div class="container-fluid">
+		<!-- Brand and toggle get grouped for better mobile display -->
+		<div class="navbar-header">
+			<button type="button" class="navbar-toggle collapsed"
+				data-toggle="collapse" data-target="#bs-example-navbar-collapse-1"
+				aria-expanded="false">
+				<span class="sr-only">Toggle navigation</span> <span
+					class="icon-bar"></span> <span class="icon-bar"></span> <span
+					class="icon-bar"></span>
+			</button>
+			<a class="navbar-brand" href="index.php"><img height="25px" src="img/LOGO_WV.png"></a>
+		</div>
+
+		<!-- Collect the nav links, forms, and other content for toggling -->
+		<div class="collapse navbar-collapse"
+			id="bs-example-navbar-collapse-1">
+			<ul class="nav navbar-nav">
+				<li class="dropdown"><a href="#" class="dropdown-toggle"
+					data-toggle="dropdown" role="button" aria-haspopup="true"
+					aria-expanded="false"><i class="fa fa-users" aria-hidden="true"></i>&nbsp; Clients <span class="caret"></span></a>
+					<ul class="dropdown-menu">					
+						<li><a href="client.php">New&nbsp;<i class="fa fa-user-plus" aria-hidden="true"></i></a></li>
+						<li><a href="clients.php">List&nbsp; <i class="fa fa-users" aria-hidden="true"></i></a></li>
+						<li><a href="session.php">Session</a></li>
+						<li role="separator" class="divider"></li>
+						<li><a href="cards.php">Cards</a></li>
+						<li><a href="sessionsPay.php">Payments&nbsp; <i class="fa fa-credit-card" aria-hidden="true"></i></a></li>
+					</ul></li>
+					<li class="dropdown"><a href="#" class="dropdown-toggle"
+					data-toggle="dropdown" role="button" aria-haspopup="true"
+					aria-expanded="false"><i class="fa fa-cog" aria-hidden="true"></i>&nbsp; Tools <span class="caret"></span></a>
+					<ul class="dropdown-menu">
+						<li><a href="sessions.php">Sessions</a></li>
+						<li role="separator" class="divider"></li>
+						<li><a href="boats.php">Boat List</a></li>
+						<li><a href="boats.php">New Boat</a></li>
+						<li role="separator" class="divider"></li>
+						<li><a href="sports.php">Sports List</a></li>
+						<li><a href="sport.php">New Sport</a></li>
+						<li role="separator" class="divider"></li>
+						<li><a href="staff.php">Staff</a></li>
+						<li role="separator" class="divider"></li>
+						<li><a href="prices.php">Price List</a></li>
+						<li><a href="price.php">New Price</a></li>
+					</ul></li>
+			</ul>
+			<form class="navbar-form navbar-left" role="search" action="">
+				<div class="form-group">
+					<input type="text" class="form-control" id="clientSearchNav" name="clientSearchNav" />
+				</div>
+			</form>
+			
+					<ul class="nav navbar-nav navbar-right">
+			<li class="dropdown">
+				<a href="#" class="dropdown-toggle" data-toggle="dropdown" role="button" aria-haspopup="true" aria-expanded="false">
+					<span class="glyphicon glyphicon-user" aria-hidden="true"></span>
+					<span class="caret"></span></a>
+				<ul class="dropdown-menu">
+					<li><a href="?logout=1">logout</a></li>
+				</ul>
+			</li>
+  		</ul>
+			
+		</div>
+		
+
+		
+		<!-- /.navbar-collapse -->
+	</div>
+	<!-- /.container-fluid --> </nav>

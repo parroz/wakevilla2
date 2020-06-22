@@ -1,0 +1,99 @@
+ <?php
+ //session_set_cookie_params(0);
+ //session_start();
+ 
+//include_once('lib/auth.php');
+
+//include "lib/wv.php";
+include_once('navbar.php');
+
+
+$documentType = 'session';
+
+if (!isset($_SESSION[$documentType]))
+	$_SESSION[$documentType] = array();
+
+	$url = "http://api.icndb.com/jokes/random";
+
+	
+	echo '<div class="container">';
+	
+	$joke = file_get_contents($url);
+	//echo $joke;
+//	$data2 = unserialize($joke);
+//	echo json_encode($data2);
+	
+	
+	$data = json_decode($joke, TRUE);
+	echo $data['value']['joke'];
+	
+//	echo json_encode($data);	
+//	$data2 = print_r($data);  // Convert to PHP Array
+//	echo $data2['value']['joke'];
+
+?>
+	<div class="row">
+		<h2>Css leds</h2>
+		<h4>inspired from https://codepen.io/fskirschbaum/pen/MYJNaj</h4>
+	</div>
+	<div class="row">
+        <div class="col-md-1">
+            <div class="led-gray"></div>
+        </div>
+        <div class="col-md-1">
+            <div class="led-gray-blink"></div>
+        </div>
+
+        <div class="col-md-1">
+            <div class="led-red"></div>
+        </div>
+        <div class="col-md-1">
+            <div class="led-red-blink"></div>
+        </div>
+
+        <div class="col-md-1">
+            <div class="led-orange"></div>
+        </div>
+        <div class="col-md-1">
+            <div class="led-orange-blink"></div>
+        </div>
+
+        <div class="col-md-1">
+            <div class="led-green"></div>
+        </div>
+        <div class="col-md-1">
+            <div class="led-green-blink"></div>
+        </div>
+
+        <div class="col-md-1">
+            <div class="led-yellow"></div>
+        </div>
+        <div class="col-md-1">
+            <div class="led-yellow-blink"></div>
+        </div>
+
+        <div class="col-md-1">
+            <div class="led-blue"></div>
+        </div>
+        <div class="col-md-1">
+            <div class="led-blue-blink"></div>
+        </div>
+    </div>
+  
+  
+</div>
+
+
+<script>
+
+
+$(document).ready(function () {
+
+	
+	
+});
+	
+	
+	</script>
+  </body>
+</html>

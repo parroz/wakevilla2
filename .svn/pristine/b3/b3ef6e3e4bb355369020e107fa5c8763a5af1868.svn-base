@@ -1,0 +1,111 @@
+<?php
+include "lib/wv.php";
+session_start();
+//include_once('navbar.php');
+$db = new wv();
+?>
+<!DOCTYPE html>
+<html lang="en">
+	<head>
+		<meta charset="utf-8">
+		<meta http-equiv="X-UA-Compatible" content="IE=edge">
+		<meta name="viewport" content="width=device-width, initial-scale=1">
+		
+		<title>Register</title>
+		
+		<link href="css/bootstrap.css" rel="stylesheet">
+		<link href="css/typeahead.css" rel="stylesheet">
+		<link href="css/mystyle.css" rel="stylesheet">
+		<link href="css/select2.min.css" rel="stylesheet">
+		 <link rel="stylesheet" href="css/led.css" />
+		 <link rel="stylesheet" href="css/font-awesome.css">
+		 
+		 
+		<link rel="icon" href="img/LOGO_WV.png">
+	
+  </head>
+  
+		<script type="text/javascript" src="js/jquery-1.11.3.min.js"></script>
+		<script type="text/javascript" src="js/bootstrap.min.js"></script>
+		<script type="text/javascript" src="js/handlebars-v4.0.4.js"></script>
+		<script type="text/javascript" src="js/bloodhound.js"></script>
+		<script type="text/javascript" src="js/typeahead.jquery.js"></script>		
+		<script type="text/javascript" src="js/myscripts.js"></script>
+		<script type="text/javascript" src="js/select2.full.js"></script>
+		  
+  <body>
+
+<div class="container">
+<?php
+$result = 0;
+while(true)
+{
+	if (!isset($_POST['register'])) break;
+	
+	if (isset($_POST['user_name']) && isset($_POST['password']))
+	{
+		if (($username = $db->check_user($_POST['user_name'])) == NULL)
+		{
+			echo 'Username inválido: deve conter no mínimo 5 caracteres alfanuméricos';
+			break;
+		}
+		if (($password = $db->check_password($_POST['password'])) == NULL)
+		{
+			echo 'Password inválida: deve conter no mínimo 8 caracteres';
+			break;
+		}
+		if ($_SESSION['user']['level'] < $_POST['level'])
+		{
+			echo 'Não pode criar utilizadores nivel superior ao seu.';
+			break;
+		}
+		$result = $db -> register_user($username,$password,$_POST['level'],$_SESSION['user']['id']);
+		if ($result < 0)
+			echo 'Utilizador já existente';
+	}
+	break;
+}
+	
+if ($result <= 0) 
+	echo '
+	<form class="form-horizontal" method="POST" action="register.php">
+		<div class="row">	
+			<div class="col-md-7">
+				<div class="panel panel-default">
+					<div class="panel-heading">
+                        <h3 class="panel-title">Register new user</h3></div>
+					<div class="panel-body">
+					
+						<div class="form-group">
+							<label for="username" class="col-sm-2 control-label">Username</label>
+							<div class="col-sm-10">
+								<input type="text" class="form-control" id="username" name="user_name">
+							</div>
+						</div>
+		
+						<div class="form-group">
+							<label for="password" class="col-sm-2 control-label">Password</label>
+							<div class="col-sm-10">
+								<input type="password" class="form-control" id="password" placeholder="" name="password">
+							</div>
+						</div>	
+						
+						<div class="form-group">
+							<div class="col-md-8">
+								<button id="submit" name="register" value="1" class="btn btn-success">Gravar</button>
+							</div>
+						</div>
+						
+					</div>
+				</div>
+			</div>
+		</div>
+	</form>';
+	else
+		echo 'Ok, utilizador registado';
+
+?>
+	
+</div>
+</body>
+</html>

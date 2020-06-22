@@ -1,0 +1,881 @@
+<?php
+
+class wv {
+	const host = 'localhost';
+	const user = 'pserra';
+	const pass = 'auglittd';
+	const db = 'wakevilla';
+
+	private $con;
+
+	function __construct()
+	{
+		$this->con = mysqli_connect(self::host, self::user, self::pass, self::db);
+		if ($this->con == NULL)
+			die("Can not connect to database: ".mysql_error());
+
+		mysqli_set_charset($this->con,"utf8");
+	}
+
+
+	function __destruct()
+	{
+		mysqli_close($this->con);
+	}
+
+
+	function escape($s)
+	{
+	    return mysqli_real_escape_string($this->con, $s);
+	}    
+
+	function escapeArray($a=array())
+	{
+	    $b = array();
+	    foreach ($a as $k => $v)
+	    {
+	        $b[$k] = mysqli_real_escape_string($this->con, $v);
+	    }
+	    return $b;
+	}
+	
+	
+	/*
+	 * Users
+	 */
+	function auth($username = 0, $password = 0)
+	{
+	    if (empty($username)) return 0;
+	    if (empty($password)) return 0;
+	    
+	    $query = "SELECT * FROM users WHERE username = '". $username . "' AND password = '". $password ."'";
+	    $result = mysqli_query($this->con, $query) or die("Invalid query: " . $query . " ERROR: " . mysqli_error());
+	    if (mysqli_num_rows($result))
+	    {
+	        $row = mysqli_fetch_array($result, MYSQLI_ASSOC);
+//	        $salt1 = "qm&h*";
+//	        $salt2 = "pg!@";
+//          $token = md5("$salt1$pw_temp$salt2");
+	        
+	        if ($password == $row['password'])
+	        {
+	            $query = "update user set counter = counter + 1 where id = '".$row['id']."'";
+	            $result = mysqli_query($this->con, $query) or die("Invalid query: " . $query . " ERROR: " . mysqli_error());
+	            return $row['level'];   
+	        }
+	    }
+	    return 0;
+	}
+	
+	
+	
+	
+	/*
+	 * Generic Data
+	 */
+	function countries()
+	{
+	    $query = "SELECT * FROM country";
+	    $result = mysqli_query($this->con, $query) or die("Invalid query: " . $query . " ERROR: " . mysqli_error());
+	    $rows = array();
+	    while($row = mysqli_fetch_array($result, MYSQLI_ASSOC))
+	        $rows[] = $row;
+	    return $rows;
+	}
+	
+	
+	
+	/*
+	 * BOATS 
+	 */
+	function boats()
+	{
+		$query = "SELECT * FROM allBoats";
+		$result = mysqli_query($this->con, $query) or die("Invalid query 1: " . mysqli_error());
+		$rows = array();
+		while($row = mysqli_fetch_array($result, MYSQLI_ASSOC))
+			$rows[] = $row;
+		return $rows;
+	}
+	
+	function boatSave($name, $brand, $model, $hours)
+	{
+		$query = "INSERT into boats (name,brand,model,hours) 
+		VALUES ('". $name ."', '" . $brand . "', '".$model ."', '". $hours ."')";
+		$result = mysqli_query($this->con, $query) or die("Invalid query 2: " . mysqli_error());
+		return mysqli_insert_id($this->con);
+	}
+	
+	function boatUpdate($id, $name, $brand, $model, $hours)
+	{
+		$query = "UPDATE boats SET name='".$name."',brand='".$brand."',model='".$model."',hours='".$hours."'WHERE id='".$id."'"; 	
+		$result = mysqli_query($this->con, $query) or die("Invalid query 3: " . mysqli_error());
+		return $id;
+	}
+	
+	function boat($id)
+	{
+		$query = "SELECT id, name, hours, brand, model FROM boats WHERE id = '".$id."'";
+		$result = mysqli_query($this->con, $query) or die("Invalid query 4: " . mysqli_error());
+		$row = mysqli_fetch_assoc($result);
+		if ($row == NULL) return -1;
+		return $row;
+	}
+	
+	function boat_number_sessions($id)
+	{
+		if (empty($id)) return -1;
+		$query = "SELECT count(boat_id) as bs FROM sessions WHERE boat_id = '".$id."'";
+		$result = mysqli_query($this->con, $query) or die("Invalid query 5: " . mysqli_error());
+		$row = mysqli_fetch_assoc($result);
+		if ($row == NULL) return -1;
+		return intval($row['bs']);
+	}
+
+	function boatDelete($id)
+	{
+		if (empty($id)) return -1;
+		if ($this->boat_number_sessions($id) > 0)
+			return 0;
+			
+		$query = "delete from boats where id = '".$id."'";
+		$result = mysqli_query($this->con, $query) or die("Invalid query 6: " . mysqli_error());
+		return 1;
+	}
+	
+	/*
+	 * PRICES 
+	 */
+	function prices()
+	{
+		$query = "SELECT id, name, ppm, price, weight, associated, description FROM prices";
+		$result = mysqli_query($this->con, $query) or die("Invalid query 7: " . mysqli_error());
+		$rows = array();
+		while($row = mysqli_fetch_array($result, MYSQLI_ASSOC))
+			$rows[] = $row;
+		return $rows;
+	}
+	
+	function priceSave()
+	{
+        $name = $_REQUEST['name'];
+        $ppm = (isset($_REQUEST['ppm']) && $_REQUEST['ppm'] != '') ? $_REQUEST['ppm'] : 'null';
+        $price = (isset($_REQUEST['price']) && $_REQUEST['price'] != '') ? $_REQUEST['price'] : 'null';
+	    $desc = $_REQUEST['description'];
+	    $weight = isset($_REQUEST['weight']) ? 'Y' : 'N';
+	    $associated = isset($_REQUEST['associated']) ? 'Y' : 'N';
+	    
+		$query = "INSERT into prices (name,ppm,price,weight,associated,description) 
+		VALUES ('". $name ."', " . $ppm . ", ".$price .", '". $weight ."', '". $associated ."', '". $desc ."')";
+		$result = mysqli_query($this->con, $query) or die("Invalid query 8: " . mysqli_error());
+		return mysqli_insert_id($this->con);
+	}
+	
+	function priceUpdate()
+	{
+	    $id = $_REQUEST['id'];
+	    $name = $_REQUEST['name'];
+	    $ppm = (isset($_REQUEST['ppm']) && $_REQUEST['ppm'] != '') ? $_REQUEST['ppm'] : 'null';
+	    $price = (isset($_REQUEST['price']) && $_REQUEST['price'] != '') ? $_REQUEST['price'] : 'null';
+	    $desc = $_REQUEST['description'];
+	    $weight = isset($_REQUEST['weight']) ? 'Y' : 'N';
+	    $associated = isset($_REQUEST['associated']) ? 'Y' : 'N';
+	    
+		$query = "UPDATE prices SET name='".$name."', ppm=".$ppm.", price=".$price.", weight='".$weight."', associated='".$associated."' , description='".$desc."' WHERE id='".$id."'";
+		$result = mysqli_query($this->con, $query) or die("Invalid query 9: " . mysqli_error());
+		return $id;
+	}
+	
+	function price($id = '', $name = '')
+	{
+		$query = "SELECT id, name, ppm, price, weight, associated, description  FROM prices WHERE id > 0";
+		
+ 		if ($id != '')
+ 			$query .= " AND id = '".$id."'";
+		
+ 		if ($name != '')
+ 			$query .= " AND name = '".$name."'";
+		
+		$result = mysqli_query($this->con, $query) or die("Invalid query 10: " . mysqli_error());
+		$row = mysqli_fetch_assoc($result);
+		if ($row == NULL) return -1;
+		return $row;
+	}
+	
+	function price_number_sessions($id)
+	{
+		if (empty($id)) return -1;
+		$query = "SELECT count(price_id) as ps FROM sessions WHERE price_id = '".$id."'";
+		$result = mysqli_query($this->con, $query) or die("Invalid query 11: " . mysqli_error());
+		$row = mysqli_fetch_assoc($result);
+		if ($row == NULL) return -1;
+		return intval($row['ps']);
+	}
+
+	function priceDelete()
+	{
+	    $id = $_REQUEST['id'];
+		if ($this->price_number_sessions($id) > 0)
+		  return 0;
+			
+		$query = "delete from prices where id = '".$id."'";
+		$result = mysqli_query($this->con, $query) or die("Invalid query 12: " . mysqli_error());
+		return 1;
+	}
+	
+	
+	/*
+	 * SPORTS 
+	 */
+	function sports()
+	{
+		$query = "SELECT * FROM sports";
+		
+		$result = mysqli_query($this->con, $query) or die("Invalid query 13: " . mysqli_error());
+		$rows = array();
+		while($row = mysqli_fetch_array($result, MYSQLI_ASSOC))
+			$rows[] = $row;
+		return $rows;
+	}
+	
+	function sportSave($name, $shortname)
+	{	    
+	    $query = "INSERT into sports (name, shortname) VALUES ('". $name ."',  '". $shortname ."')";
+		$result = mysqli_query($this->con, $query) or die("Invalid query 14: " . mysqli_error());
+		return mysqli_insert_id($this->con);
+	}
+	
+	function sportUpdate($id, $name, $shortname)
+	{
+	    if (empty($id)) return 0;
+		$query = "UPDATE sports SET name='".$name."', shortname='".$shortname."' WHERE id='".$id."'";
+		$result = mysqli_query($this->con, $query) or die("Invalid query 15: " . mysqli_error());
+		return $id;
+	}
+	
+	function sport($id)
+	{
+		$query = "SELECT id, name, shortname FROM sports WHERE id = '".$id."'";
+		$result = mysqli_query($this->con, $query) or die("Invalid query 16: " . mysqli_error());
+		$row = mysqli_fetch_assoc($result);
+		if ($row == NULL) return -1;
+		return $row;
+	}
+	
+	function sport_number_sessions($id)
+	{
+		if (empty($id)) return -1;
+		$query = "SELECT count(sport_id) as n FROM sessions WHERE sport_id = '".$id."'";
+		$result = mysqli_query($this->con, $query) or die("Invalid query 17: " . mysqli_error());
+		$row = mysqli_fetch_assoc($result);
+		if ($row == NULL) return -1;
+		return intval($row['n']);
+	}
+
+	function delete_sport($id)
+	{
+		if (empty($id)) return -1;
+		if ($this->sport_number_sessions($id) > 0)
+			return 0;
+			
+		$query = "delete from sports where id = '".$id."'";
+		$result = mysqli_query($this->con, $query) or die("Invalid query 18: " . mysqli_error());
+		return 1;
+	}
+	
+	/*
+	 * STAFF 
+	 */
+	function drivers()
+	{
+		$query = "select * from allDrivers";
+		$result = mysqli_query($this->con, $query) or die("Invalid query 19: " . mysqli_error());
+		$rows = array();
+		while($row = mysqli_fetch_array($result, MYSQLI_ASSOC))
+			$rows[] = $row;
+		return $rows;
+	}
+	
+	function instructors()
+	{
+		$query = "select * from allInstructors";
+		$result = mysqli_query($this->con, $query) or die("Invalid query 20: " . mysqli_error());
+		$rows = array();
+		while($row = mysqli_fetch_array($result, MYSQLI_ASSOC))
+			$rows[] = $row;
+		return $rows;
+	}
+	/*
+	 * SESSIONS 
+	 */
+	
+	
+	function session($sid)
+	{
+		return $this->sessions('', $sid, '', '', '');
+	}
+	
+	
+	function sessions($opt, $sid, $id, $driver, $instructor)
+	{
+		$query = "select * from allSessions where sid > 0";
+			
+		switch($opt)
+		{
+		case "unpayed":
+			$query .= " and is_payed = 'N'";
+			break;
+		case "payed":
+			$query .= " and is_payed = 'Y'";
+			break;
+		case "open":
+			$query .= " and is_open = 'Y'";
+			break;
+		other:
+			break;
+		}
+		
+		if (!empty($id))
+		{
+			$query .= " and pid = '". $id ."'" ;
+		}
+		
+		if (!empty($sid))
+		{
+			$query .= " and sid = '". $sid ."'" ;
+		}
+	
+		if (!empty($driver))
+		{
+			$query .= " and driver_id = '" . $driver . "'";
+		}
+
+		if (!empty($instructor))
+		{
+			$query .= " and instructor_id = '" . $instructor . "'";
+		}
+		
+		$query .= " ORDER BY timestamp desc";
+		
+		error_log(__FUNCTION__ . '():' . preg_replace('/\s+/', ' ', $query));
+		
+		$result = mysqli_query($this->con, $query) or die("Invalid query 21: " . mysqli_error());
+		
+		if (!empty($sid))
+		{
+			$row = mysqli_fetch_assoc($result);
+			if ($row == NULL) return -1;
+			return $row;
+		}
+
+		$rows = array();
+		while($row = mysqli_fetch_array($result, MYSQLI_ASSOC))
+			$rows[] = $row;
+		return $rows;
+	}
+	
+	
+	function sessionUpdate($data)
+	{
+	
+		mysqli_autocommit($this->con,FALSE);
+	
+		$timestamp = $data['date'] . ' ' .$data['hour'];
+		$price = $this->price('', $data['price']);
+	
+	
+			$query = "update `wakevilla`.`sessions` set
+				`person_id` = '".$data['clientId']."',
+				`sport_id` = '".$data['sport']."',
+				`boat_id` = '".$data['boat']."',
+				`boat_hours` = '".$data['hours']."',
+				`weight` = '".(empty($data['weight']) ? 'N' : 'Y')."',
+				`is_open` = 'N',
+				`driver_id`  = '".$data['driver']."',
+				`instructor_id` = '".$data['instructor']."',
+				`timestamp`  = '".$timestamp."',
+				`minutes` = '".$data['minutes']."',
+				`price_id`  = '".$price['id']."',
+				`cost`  = '".$data['cost']."',
+				`is_payed`  = 'N'
+				where
+				id = '".$data['sessionId']."'";
+				
+		error_log( __FUNCTION__ . '():' . preg_replace('/\s+/', ' ', $query));
+		$result = mysqli_query($this->con, $query) or die("Invalid query " . __FUNCTION__ ." ". mysqli_error($this->con));
+		
+		mysqli_commit($this->con);
+		mysqli_autocommit($this->con,TRUE);
+		
+		return $sid;
+	}
+	
+	function sessionCreate($data)
+	{
+		
+		if (!empty($data['sessionId']))
+			return $this->sessionUpdate($data);
+		
+		mysqli_autocommit($this->con,FALSE);
+		
+		$timestamp = $data['date'] . ' ' .$data['hour'];
+		$price = $this->price('', $data['price']);
+		
+		
+		$query = "INSERT INTO `wakevilla`.`sessions`
+		(`person_id`,
+		`sport_id`,
+		`boat_id`,
+		`boat_hours`,
+		`weight`,
+		`is_open`,
+		`driver_id`,
+		`instructor_id`,
+		`timestamp`,
+		`minutes`,
+		`price_id`,
+		`cost`,
+		`is_payed`)
+		VALUES
+		(
+		'".$data['clientId']."',
+		'".$data['sport']."',
+		'".$data['boat']."',
+		'".$data['hours']."',
+		'".(empty($data['weight']) ? 'N' : 'Y')."',
+		'N',
+		'".$data['driver']."',
+		'".$data['instructor']."',
+		'".$timestamp."',
+		'".$data['minutes']."',
+		'".$price['id']."',
+		'".$data['cost']."',
+		'N')";
+			
+		error_log( __FUNCTION__ . '():' . preg_replace('/\s+/', ' ', $query));
+		$result = mysqli_query($this->con, $query) or die("Invalid query " . __FUNCTION__ ." ". mysqli_error($this->con));
+
+		$sid = mysqli_insert_id($this->con);
+				
+		mysqli_commit($this->con);
+		mysqli_autocommit($this->con,TRUE);
+		
+		
+		return $sid;
+	}
+	
+	
+	function sessionPay($sid)
+	{
+	
+		mysqli_autocommit($this->con,FALSE);
+	
+		$timestamp = $data['date'] . ' ' .$data['hour'];
+		$price = $this->price('', $data['price']);
+	
+	
+		$query = "update `wakevilla`.`sessions` set `is_payed` = 'Y' where id = '".$sid."'";
+	
+		error_log( __FUNCTION__ . '():' . preg_replace('/\s+/', ' ', $query));
+		$result = mysqli_query($this->con, $query) or die("Invalid query " . __FUNCTION__ ." ". mysqli_error($this->con));
+	
+		mysqli_commit($this->con);
+		mysqli_autocommit($this->con,TRUE);
+	
+		return $sid;
+	}
+	
+	
+	
+	/*
+	 * clients
+	 */
+	function add_client($firstname,$lastname,$shortname,$gender,$dob,$country,$phone,$email,$fb_id,$club,$notes)
+	{
+		$firstname = mysqli_real_escape_string($this->con, $firstname);
+		$lastname = mysqli_real_escape_string($this->con, $lastname);
+		
+		if (empty($firstname) || empty($lastname))
+			return 0;	
+			
+		$query = "INSERT INTO client (firstname, lastname, nickname, dob, gender, phone, email, fbid, comments, country) VALUES ('".$firstname."', '".$lastname."', ";
+	
+		
+		$shortname = mysqli_real_escape_string($this->con, $shortname);
+		if (empty($shortname) || is_null($shortname)) 
+			$query .= "null, ";
+		else
+			$query .= "'" . $shortname ."', ";
+
+		$dob = mysqli_real_escape_string($this->con, $dob);
+		if (empty($dob)|| is_null($dob))
+			$query .= "null, ";
+		else
+			$query .= "'" . $dob ."', ";
+
+		$gender = mysqli_real_escape_string($this->con, $gender);
+		if (empty($gender)|| is_null($gender))
+			$query .= "null, ";
+		else
+			$query .= "'" . $gender ."', ";
+	
+	
+		$phone = mysqli_real_escape_string($this->con, $phone);
+		if (empty($phone)|| is_null($phone))
+			$query .= "null, ";
+		else
+			$query .= "'" . $phone ."', ";
+	
+	
+		$email = mysqli_real_escape_string($this->con, $email);
+		if (empty($email) || is_null($email)) 
+			$query .= "null, ";
+		else
+			$query .= "'" . $email ."', ";
+	
+	
+		$fb_id = mysqli_real_escape_string($this->con, $fb_id);
+		if (empty($fb_id) || is_null($fb_id)) 
+			$query .= "null, ";
+		else
+			$query .= "'" . $fb_id ."', ";	
+	
+			
+		$notes = mysqli_real_escape_string($this->con, $notes);
+		if (empty($notes) || is_null($notes)) 
+			$query .= "null, ";
+		else
+			$query .= "'" . $notes ."', ";
+			
+		
+		$country = mysqli_real_escape_string($this->con, $country);
+		if (empty($country) || is_null($country))
+			$query .= "null)";
+		else
+			$query .= "'" . $country ."')";
+		//echo $query;
+		$result = mysqli_query($this->con, $query) or die("Invalid query 22: " . mysqli_error());
+		$id = mysqli_insert_id($this->con);
+//		$club = mysqli_real_escape_string($this->con, $club);
+//		if (empty($club) || $club == 'n')
+//			return $id;
+//		$this->add_club_member($id);
+		return $id;
+	}
+	
+	function person($id)
+	{
+		if (empty($id)) return NULL;
+		
+		$query = "SELECT * from allClients where id = $id";
+		$result = mysqli_query($this->con, $query) or die("Invalid query 23: " . mysqli_error());
+		$row = mysqli_fetch_assoc($result);
+		return $row;
+	}
+	
+	
+	function client($id='', $name='', $text='')
+	{
+		global $_SESSION;
+		$text = str_replace(" ", "%", $text);
+		$name = str_replace(" ", "%", $name);
+	
+		$sql = "SELECT * FROM allClients WHERE id > 0";
+	
+		if(isset($id) && $id != '')
+			$sql .= " AND id = '" . $id."'";
+	
+		if(isset($text) && $text != '')
+			$sql .= " AND (id = '" . $text . "' OR lower(CONCAT(firstname,lastname)) like lower('%" . $text . "%') OR lower(comments) like lower('%" . $text . "%'))";
+		
+		$sql .= " ORDER BY id";
+	
+		$result = mysqli_query($this->con, $sql) or die("Invalid query " . __FUNCTION__ ." ". mysqli_error($this->con));
+		$rows = array();
+		while(($row =  mysqli_fetch_array($result)))
+			$rows[] = $row;
+
+		return $rows;
+	}
+	
+	
+	
+	function clientSave()
+	{
+		global $_POST;	
+		$birth_date = !empty($_POST['dob']) ? date('Y-m-d',strtotime($_POST['dob'])) : '';
+				
+		$query = "INSERT INTO `client`
+			(
+			`firstname`,
+			`lastname`,
+			`nickname`,
+			`gender`,
+			`email`,
+			`NIF`,
+			`country`,
+			`phone`,
+			`dob`,
+			`fbid`,
+			`comments`)
+			VALUES (
+			".  (!empty($_POST['firstname']) ? "'".$_POST['firstname']."'" : "NULL") .",
+			".  (!empty($_POST['lastname']) ? "'".$_POST['lastname']."'" : "NULL") .",
+			".  (!empty($_POST['nickname']) ? "'".$_POST['nickname']."'" : "NULL") .",
+			".  (!empty($_POST['gender']) ? "'".$_POST['gender']."'" : "NULL") .",
+			".  (!empty($_POST['email']) ? "'".$_POST['email']."'" : "NULL") .",
+			".  (!empty($_POST['nif']) ? "'".$_POST['nif']."'" : "NULL") .",
+			".  (!empty($_POST['country']) ? "'".$_POST['country']."'" : "'PT'") .",
+			".  (!empty($_POST['phone']) ? "'".$_POST['phone']."'" : "NULL") .",
+			".  (!empty($birth_date) ? "'".$birth_date."'" : "NULL") .",
+			".  (!empty($_POST['fbid']) ? "'".$_POST['fbid']."'" : "NULL") .",
+			".  (!empty($_POST['comments']) ? "'".$_POST['comments']."'" : "NULL") ."
+			)";
+
+		error_log(__FUNCTION__ . '():' . preg_replace('/\s+/', ' ', $query));
+		$result = mysqli_query($this->con, $query) or die("Invalid query " . __FUNCTION__ ." ". mysqli_error($this->con));	
+					
+		
+		return mysqli_insert_id($this->con);
+	}
+	
+	
+	
+	function clientUpdate()
+	{
+		global $_POST;
+		error_log('save client');
+		mysqli_autocommit($this->con,FALSE);
+		
+	
+		$birth_date = !empty($_POST['dob']) ? date('Y-m-d',strtotime($_POST['dob'])) : '';
+	
+		$p = $this->person($_POST['id']);
+		if (empty($p))
+		{
+			error_log('client not found. Cannot update');
+			return NULL;
+		}
+		
+		error_log('client existe -> update'. $_POST['id']);
+	
+		$clientId = $_POST['id'];
+		$query = "UPDATE `client`
+		SET
+			`firstname` = ".  (!empty($_POST['firstname']) ? "'".$_POST['firstname']."'" : "NULL") .",
+			`lastname` = ".  (!empty($_POST['lastname']) ? "'".$_POST['lastname']."'" : "NULL") .",
+			`nickname` = ".  (!empty($_POST['nickname']) ? "'".$_POST['nickname']."'" : "NULL") .",
+			`gender` = ".  (!empty($_POST['gender']) ? "'".$_POST['gender']."'" : "NULL") .",
+			`email` = ".  (!empty($_POST['email']) ? "'".$_POST['email']."'" : "NULL") .",
+			`NIF` = ".  (!empty($_POST['nif']) ? "'".$_POST['nif']."'" : "NULL") .",
+			`country` = ".  (!empty($_POST['country']) ? "'".$_POST['country']."'" : "'PT'") .",
+			`phone` = ".  (!empty($_POST['phone']) ? "'".$_POST['phone']."'" : "NULL") .",
+			`dob` = ".  (!empty($birth_date) ? "'".$birth_date."'" : "NULL") .",
+			`fbid` = ".  (!empty($_POST['fbid']) ? "'".$_POST['fbid']."'" : "NULL") .",
+			`comments` = ".  (!empty($_POST['comments']) ? "'".$_POST['comments']."'" : "NULL") ."
+			WHERE `id` = '".$clientId."'";
+				error_log(__FUNCTION__ . '():' . preg_replace('/\s+/', ' ', $query));
+		$result = mysqli_query($this->con, $query) or die("Invalid query " . __FUNCTION__ ." ". mysqli_error($this->con));
+	
+		if ($p['driver'] == 'Y')
+		{
+			if ($_POST['driver'] == 'N') // remove a driver
+			{
+				$query = "DELETE FROM `drivers` where id = '".$clientId."'";
+				error_log(__FUNCTION__ . '():' . preg_replace('/\s+/', ' ', $query));
+				$result = mysqli_query($this->con, $query) or die("Invalid query " . __FUNCTION__ ." ". mysqli_error($this->con));
+			}
+			else // update rating
+			{
+				$query = "UPDATE `drivers` SET rating = '".$_POST['drating']."' where id = '".$clientId."'";
+				error_log(__FUNCTION__ . '():' . preg_replace('/\s+/', ' ', $query));
+				$result = mysqli_query($this->con, $query) or die("Invalid query " . __FUNCTION__ ." ". mysqli_error($this->con));
+			}
+		}
+		if ($p['driver'] == 'N' && $_POST['driver'] == 'Y') // Add a driver
+		{
+			$query = "INSERT INTO `drivers` (id,rating) VALUES ('".$clientId."', '".$_POST['drating']."')";
+			error_log(__FUNCTION__ . '():' . preg_replace('/\s+/', ' ', $query));
+			$result = mysqli_query($this->con, $query) or die("Invalid query " . __FUNCTION__ ." ". mysqli_error($this->con));
+			$p['driver'] = 'Y';
+		}
+		if ($p['instructor'] == 'Y')
+		{
+			if ($_POST['instructor'] == 'N') // remove an instructor
+			{
+				$query = "DELETE FROM `instructors` where id = '.$clientId.'";
+				error_log(__FUNCTION__ . '():' . preg_replace('/\s+/', ' ', $query));
+				$result = mysqli_query($this->con, $query) or die("Invalid query " . __FUNCTION__ ." ". mysqli_error($this->con));
+			}
+			else // update rating
+			{
+				$query = "UPDATE `instructors` SET rating = '".$_POST['irating']."' where id = '".$clientId."'";
+				error_log(__FUNCTION__ . '():' . preg_replace('/\s+/', ' ', $query));
+				$result = mysqli_query($this->con, $query) or die("Invalid query " . __FUNCTION__ ." ". mysqli_error($this->con));
+			}
+		}
+		if ($p['instructor'] == 'N' && $_POST['instructor'] == 'Y') // Add an instructor
+		{
+			$query = "INSERT INTO `instructors` (id,rating) VALUES ('".$clientId."', '".$_POST['irating']."')";
+			error_log(__FUNCTION__ . '():' . preg_replace('/\s+/', ' ', $query));
+			$result = mysqli_query($this->con, $query) or die("Invalid query " . __FUNCTION__ ." ". mysqli_error($this->con));
+		}
+		
+		mysqli_commit($this->con);
+		mysqli_autocommit($this->con,TRUE);
+		
+		return $clientId;
+	}
+	
+	
+	// cards
+	function cardTypes()
+	{
+		$sql = "select * from card_type";
+		
+		$result = mysqli_query($this->con, $sql) or die("Invalid query " . __FUNCTION__ ." ". mysqli_error($this->con));
+		$rows = array();
+		while(($row =  mysqli_fetch_array($result)))
+			$rows[] = $row;
+		
+		return $rows;	
+	}
+	
+	function cards()
+	{
+		$sql = "select * from allCards";		
+		
+		$result = mysqli_query($this->con, $sql) or die("Invalid query " . __FUNCTION__ ." ". mysqli_error($this->con));
+		$rows = array();
+		while(($row =  mysqli_fetch_array($result)))
+			$rows[] = $row;
+	
+		return $rows;
+	}
+
+	function card($id)
+	{
+		if (empty($id)) return NULL;
+		
+		$sql = "select * from allCards where id = '".$id."'";
+	
+		$result = mysqli_query($this->con, $sql) or die("Invalid query " . __FUNCTION__ ." ". mysqli_error($this->con));
+		$row =  mysqli_fetch_array($result);
+		return $row;
+	}
+	
+	
+	function cardHistory($id = '')
+	{
+		$sql = "select * from cardHistory where chId > 0";
+		
+		if (!empty($id))
+			$sql .= " and person_id = '".$id."'";
+
+		$result = mysqli_query($this->con, $sql) or die("Invalid query " . __FUNCTION__ ." ". mysqli_error($this->con));
+		$rows = array();
+		while(($row =  mysqli_fetch_array($result)))
+			$rows[] = $row;
+			
+		return $rows;
+	}
+	
+	
+	function cardUpdate($id)
+	{
+		global $_POST;
+		if (empty($id)) return false;
+		$card = $this->card($id);
+		if (empty($card)) return false;
+		
+		error_log('card update');
+		mysqli_autocommit($this->con,FALSE);
+		
+		if (!empty($_POST['type']))
+		{
+			if ($card['type'] != $_POST['type'])		
+			$query = "UPDATE `cards` set type = '".$_POST['type']."' where id = '".$id."'";
+		}
+		
+		if (!empty($_POST['value']))
+		{
+			error_log("card_charge");
+			$val = round($_POST['value'],2);
+			if  ($val > 0)
+				$this->cardCharge($id,$val);
+		}
+		
+		mysqli_commit($this->con);
+		mysqli_autocommit($this->con,TRUE);
+		return true;
+	}
+	
+	
+	function cardCharge($id, $value)
+	{
+		if (empty($id) || empty($value)) return false;
+		mysqli_autocommit($this->con,FALSE);
+		
+		$sql = "INSERT INTO `card_history` (`person_id`,`value`)
+				VALUES ('".$id."', '".$value."')";
+		error_log(__FUNCTION__ . '():' . preg_replace('/\s+/', ' ', $sql));
+		$result = mysqli_query($this->con, $sql) or die("Invalid query " . __FUNCTION__ ." ". mysqli_error($this->con));
+
+		mysqli_commit($this->con);
+		mysqli_autocommit($this->con,TRUE);
+		
+		return true;
+	}
+	
+	function cardPay($id, $sid, $value)
+	{
+		if (empty($id) || empty($value) || empty($sid)) return false;
+	
+		$sql = "INSERT INTO `card_history` (`person_id`,`value`, session_id)
+				VALUES ('".$id."', '".$value."', '".sid."')";
+		error_log(__FUNCTION__ . '():' . preg_replace('/\s+/', ' ', $sql));
+		$result = mysqli_query($this->con, $sql) or die("Invalid query " . __FUNCTION__ ." ". mysqli_error($this->con));
+		return true;		
+	}
+	
+	/*
+	 * CLUB 
+	 */
+	function add_club_member($id)
+	{
+			
+		$query = "INSERT INTO persons (id) VALUES ('".$id."')";
+		$result = mysqli_query($this->con, $query) or die("Invalid query 43: " . mysqli_error());
+		$return = mysqli_insert_id($this->con);	
+	}
+	
+	
+	
+	function sensor($id)
+	{
+	    if (empty($id)) return null;
+
+	    $query = "SELECT * from sensor where id = '".$id."'";
+	    $result = mysqli_query($this->con, $query) or die("Invalid query " . __FUNCTION__ ." ". mysqli_error($this->con));
+	    $row = mysqli_fetch_assoc($result);
+	    return $rows
+	}
+	
+	
+	function sensorReadings($id)
+	{
+	    if (empty($id)) return null;
+	    
+	    $query = "SELECT * from sensor_readings where sensor_id = '".$id."'";
+	    $result = mysqli_query($this->con, $query) or die("Invalid query " . __FUNCTION__ ." ". mysqli_error($this->con));
+	    $rows = array();
+	    while(($row =  mysqli_fetch_array($result)))
+	        $rows[] = $row;
+
+	    return $rows;
+	}
+	
+
+}
+
+?>

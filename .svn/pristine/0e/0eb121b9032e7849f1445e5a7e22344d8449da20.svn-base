@@ -1,0 +1,159 @@
+<?php
+include "lib/wv.php";
+session_start();
+//include_once('navbar.php');
+$db = new wv();
+?>
+<!DOCTYPE html>
+<html lang="en">
+	<head>
+		<meta charset="utf-8">
+		<meta http-equiv="X-UA-Compatible" content="IE=edge">
+		<meta name="viewport" content="width=device-width, initial-scale=1">
+		
+		<title>Register</title>
+		
+		<link href="css/bootstrap.css" rel="stylesheet">
+		<link href="css/typeahead.css" rel="stylesheet">
+		<link href="css/mystyle.css" rel="stylesheet">
+		<link href="css/select2.min.css" rel="stylesheet">
+		 <link rel="stylesheet" href="css/led.css" />
+		 <link rel="stylesheet" href="css/font-awesome.css">
+		 
+		 
+		<link rel="icon" href="img/LOGO_WV.png">
+	
+  </head>
+  
+		<script type="text/javascript" src="js/jquery-1.11.3.min.js"></script>
+		<script type="text/javascript" src="js/bootstrap.min.js"></script>
+		<script type="text/javascript" src="js/handlebars-v4.0.4.js"></script>
+		<script type="text/javascript" src="js/bloodhound.js"></script>
+		<script type="text/javascript" src="js/typeahead.jquery.js"></script>		
+		<script type="text/javascript" src="js/myscripts.js"></script>
+		<script type="text/javascript" src="js/select2.full.js"></script>
+		  
+  <body>
+
+<div class="container">
+	<form class="form-horizontal" method="POST" id="regist_form">
+		<div class="row">	
+			<div class="col-md-10">
+				<div class="panel panel-default">
+					<div class="panel-heading">
+						<h3 class="panel-title">Register new user</h3>
+					</div>
+					<div class="panel-body">
+					
+						<div class="form-group">
+							<label class="col-md-2 control-label" for="firstname">First Name</label>
+							<div class="col-md-3">
+								<input id="firstname" name="firstname" type="text" class="form-control input-md">
+							</div>
+							<label class="col-md-2 control-label" for="lastname">Last Name</label>
+							<div class="col-md-3">
+								<input id="lastname" name="lastname" type="text" class="form-control input-md">
+							</div>
+						</div>
+							
+						<div class="form-group">
+							<label class="col-md-2 control-label" for="phone">Phone</label>
+							<div class="col-md-8">
+								<input name="phone" id="phone" type="text" class="input-medium bfh-phone form-control" data-format="+ddd dd ddddddd">
+							</div>
+						</div>
+											
+						<div class="form-group">
+							<label class="col-md-2 control-label" for="country">Country</label>
+							<div class="col-md-8">					
+								<select name="country" id="country" class="input-medium bfh-countries form-control" > 
+								<?php
+		      					foreach ($db->countries() as &$country)
+				    		        echo '<option value = "'.$country['id']. '">' . $country['name']. '</option>';
+					       		?>
+         						</select>
+							</div>
+						</div>
+
+						<div class="form-group">			
+							<label class="col-md-2 control-label" for="position">Position/Role</label>
+							<div class="col-md-8">
+								<input id="position" name="position" type="text" class="form-control input-md">
+							</div>
+						</div>
+							
+						<div class="form-group">
+							<label for="email" class="col-sm-2 control-label">email</label>
+							<div class="col-md-8">
+								<input type="text" class="form-control" id="email" name="email">
+							</div>
+						</div>
+		
+						<div class="form-group">
+							<label for="password" class="col-sm-2 control-label">Password</label>
+							<div class="col-md-8">
+								<input type="password" class="form-control" id="password" placeholder="" name="password">
+							</div>
+						</div>	
+						
+						<div class="form-group">
+							<div class="col-md-10">
+								<button id="register" name="register" class="btn btn-success">Submit</button>
+							</div>
+						</div>
+						
+					</div>
+				</div>
+			</div>
+		</div>
+	</form>	
+</div>
+
+
+<script>
+
+$(document).ready(function () {
+	$('#register').click(function sav(e) {
+		e.preventDefault();
+		
+		//$("#register").attr("disabled", "disabled");
+
+		var disabled = $('#regist_form').find(':input:disabled').removeAttr('disabled');
+		var postData = $('#regist_form').serializeArray();
+		disabled.attr('disabled','disabled');
+//		postData.push({ name: "delete", value: delete_flag});
+		
+		$.ajax({
+			url : 'lib/register.php',
+			type: "POST",
+			data : postData,
+			dataType 	: 'json',
+			encode 		: true
+		}).done(function(data) {
+			console.log(data); 
+			if (!data.success) {
+				var obj = data.errors;
+				for (var prop in obj) {
+					$('#regist_form').addClass('has-error');
+					$('#regist_form').append('<div class="help-block"><div class="alert alert-danger">' + obj[prop] + '</div></div>'); 				
+				}
+			} else {
+				alert("User information submitted for approval. Check your email for updates.");
+				document.location.href='success.php';
+			}
+		})
+		.fail(function(data) {
+			console.log(data);
+		});
+
+
+		e.preventDefault();	
+	});
+});
+
+
+</script>
+
+
+</body>
+</html>
